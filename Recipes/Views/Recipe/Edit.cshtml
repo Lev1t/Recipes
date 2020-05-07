@@ -1,0 +1,20 @@
+﻿@model UpdateRecipeCommand
+@{
+    ViewData["Title"] = $"Update {Model.Name} recipe";
+}
+
+<div>
+    <h2>@ViewData["Title"]</h2>
+    <hr />
+    <form asp-action="Edit" method="post">
+        @await Html.PartialAsync("_EditRecipePartial")
+        
+        <button type="button" class="btn btn-primary d-block mb-3" id="addIngridient">Add ingridient</button>
+        <button type="submit" class="btn btn-warning">Update</button>
+    </form>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_EditScriptsPartial"); }
+    
+}

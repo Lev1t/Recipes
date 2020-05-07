@@ -1,0 +1,18 @@
+﻿@{await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+<script>
+    var ingridients = $('#ingridients tbody');
+    $("#addIngridient").click(function () {
+        var rowNo = ingridients.find('tr').length;
+        var template =
+            '<tr>' +
+            '<td><input name="Ingridients[' + rowNo + '].Name" id="Ingridients_' + rowNo + '_Name" /></td>' +
+            '<td><input name="Ingridients[' + rowNo + '].Quantity" id="Ingridients_' + rowNo + '_Quantity" /></td>' +
+            '<td><input name="Ingridients[' + rowNo + '].Unit" id="Ingridients_' + rowNo + 'Unit" /></td>' +
+            '<td><button type="button" class="btn btn-outline-danger btn-sm remove">Remove</button></td>'
+        '</tr>';
+        ingridients.append(template);
+    });
+    ingridients.on('click', '.remove', function (e) {
+        $(this).closest('tr').remove();
+    });
+</script>

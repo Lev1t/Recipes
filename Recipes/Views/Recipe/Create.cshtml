@@ -1,0 +1,19 @@
+﻿@model Recipes.Models.CreateRecipeCommand
+@{
+    ViewData["Title"] = "Create a new recipe";
+}
+
+<div>
+    <h2>@ViewData["Title"]</h2>
+    <hr />
+    <form asp-action="Create" method="post">
+        @await Html.PartialAsync("_EditRecipePartial")
+
+        <button type="button" class="btn btn-primary d-block mb-3" id="addIngridient">Add ingridient</button>
+        <button type="submit" class="btn btn-success">Create</button>
+    </form>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_EditScriptsPartial"); }
+}
