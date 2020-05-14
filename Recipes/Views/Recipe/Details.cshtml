@@ -1,33 +1,39 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+﻿@inject Microsoft.AspNetCore.Authorization.IAuthorizationService AuthService
+@inject Recipes.Services.RecipeService RecipeService
 @model Recipes.Models.RecipeDetailViewModel
 @{
     ViewData["Title"] = Model.Name;
+    var recipe = await RecipeService.GetRecipeAsync(Model.Id);
+    var authResult = await AuthService.AuthorizeAsync(User, recipe, "CanManageRecipe");
 }
 
-    <div>
-        <h1>@Model.Name</h1>
-        <p>Time to cook: @Model.TimeToCook</p>
-        @if (Model.IsVegetarian)
+<div>
+    <h1>@Model.Name</h1>
+    <p>Time to cook: @Model.TimeToCook</p>
+    @if (Model.IsVegetarian)
+    {
+        <p>Vegetarian <img src="~/img/check-3x.png" /></p>
+    }
+    @if (Model.IsVegan)
+    {
+        <p>Vegan <img src="~/img/check-3x.png" /></p>
+    }
+    <p>Cooking method: @Model.Method</p>
+    <p>Ingridients:</p>
+    <ul>
+        @foreach (var ingridient in Model.Ingridients)
         {
-            <p>Vegetarian <img src="~/img/check-3x.png" /></p>
+            <li>@ingridient.Name @ingridient.Quantity @ingridient.Unit</li>
         }
-        @if (Model.IsVegan)
-        {
-            <p>Vegan <img src="~/img/check-3x.png" /></p>
-        }
-        <p>Cooking method: @Model.Method</p>
-        <p>Ingridients:</p>
-        <ul>
-            @foreach (var ingridient in Model.Ingridients)
-            {
-                <li>@ingridient.Name @ingridient.Quantity @ingridient.Unit</li>
-            }
-        </ul>
-        <p style="white-space: pre-line;">Method: 
-        @Model.Method</p>
-        <hr />
+    </ul>
+    <p style="white-space: pre-line;">
+        Method:
+        @Model.Method
+    </p>
+    <hr />
+    @if (authResult.Succeeded)
+    {
         <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">Edit</a>
         <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-danger">Delete</a>
-    </div>
+    }
+</div>

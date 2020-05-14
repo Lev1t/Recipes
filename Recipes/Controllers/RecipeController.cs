@@ -2,43 +2,67 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Recipes.Data;
 using Recipes.Models;
 using Recipes.Services;
+using Recipes.Filters;
+using System.Runtime.InteropServices.WindowsRuntime;
 
 namespace Recipes.Controllers
 {
+    [Authorize]
     public class RecipeController : Controller
     {
-        RecipeService _recipeService;
-        public RecipeController(RecipeService recipeService)
+        private readonly RecipeService _recipeService;
+        private readonly UserManager<User> _userService;
+        private readonly IAuthorizationService _authService;
+
+        public RecipeController(RecipeService recipeService, UserManager<User> userManager, IAuthorizationService authorizationService)
         {
             _recipeService = recipeService;
-        }
-        public IActionResult Index()
-        {
-            return View(_recipeService.GetRecipes());
+            _userService = userManager;
+            _authService = authorizationService;
         }
 
-        public IActionResult Details(int id)
+        [AllowAnonymous]
+        public async Task<IActionResult> Index()
         {
-            return View(_recipeService.GetRecipeDetails(id));
+            var model = await _recipeService.GetRecipesAsync();
+            return View(model);
         }
-        
+
+        [AllowAnonymous]
+        [EnsureRecipeExists]
+        public async Task<IActionResult> Details(int id)
+        {
+            var model = await _recipeService.GetRecipeDetailsAsync(id);
+
+            var authResult = await AuthorizeToManageRecipeAsync(id);
+            if(authResult.Succeeded)
+            {
+                model.CanEdit = true;
+            }
+            return View(model);
+        }
+
         public IActionResult Create()
         {
             return View(new CreateRecipeCommand());
         }
 
         [HttpPost]
-        public IActionResult Create(CreateRecipeCommand cmd)
+        public async Task<IActionResult> Create(CreateRecipeCommand cmd)
         {
             try
             {
-                if(ModelState.IsValid)
+                if (ModelState.IsValid)
                 {
-                    int recipeId = _recipeService.CreateRecipe(cmd);
-                    return RedirectToAction(nameof(Details), new { Id = recipeId});
+                    User user = await _userService.GetUserAsync(User);
+                    int recipeId = await _recipeService.CreateRecipeAsync(cmd, user);
+                    return RedirectToAction(nameof(Details), new { Id = recipeId });
                 }
             }
             catch (Exception)
@@ -48,20 +72,36 @@ namespace Recipes.Controllers
             return View(cmd);
         }
 
-        public IActionResult Edit(int id)
+        [EnsureRecipeExists]
+        public async Task<IActionResult> Edit(int id)
         {
-            var model = _recipeService.GetRecipeForUpdate(id);
+            var authResult = await AuthorizeToManageRecipeAsync(id);
+            if (!authResult.Succeeded)
+            {
+                return new ForbidResult();
+            }
+
+            var model = await _recipeService.GetRecipeForUpdateAsync(id);
+            if (model == null)
+            {
+                return NotFound();
+            }
             return View(model);
         }
 
         [HttpPost]
-        public IActionResult Edit(UpdateRecipeCommand cmd)
+        public async Task<IActionResult> Edit(UpdateRecipeCommand cmd)
         {
             try
             {
                 if (ModelState.IsValid)
                 {
-                    _recipeService.UpdateRecipe(cmd);
+                    var authResult = await AuthorizeToManageRecipeAsync(cmd.Id);
+                    if (!authResult.Succeeded)
+                    {
+                        return new ForbidResult();
+                    }
+                    await _recipeService.UpdateRecipeAsync(cmd);
                     return RedirectToAction(nameof(Details), new { Id = cmd.Id });
                 }
             }
@@ -72,10 +112,22 @@ namespace Recipes.Controllers
             return View(cmd);
         }
 
-        public IActionResult Delete(int id)
+        [EnsureRecipeExists]
+        public async Task<IActionResult> Delete(int id)
         {
-            _recipeService.DeleteRecipe(id);
-            return RedirectToAction(nameof(Index));
+            var authResult = await AuthorizeToManageRecipeAsync(id);
+            if (authResult.Succeeded)
+            {
+                await _recipeService.DeleteRecipeAsync(id);
+                return RedirectToAction(nameof(Index));
+            }
+            return new ForbidResult();
+        }
+
+        private async Task<AuthorizationResult> AuthorizeToManageRecipeAsync(int id)
+        {
+            var recipe = await _recipeService.GetRecipeAsync(id);
+            return await _authService.AuthorizeAsync(User, recipe, "CanManageRecipe");
         }
     }
 }

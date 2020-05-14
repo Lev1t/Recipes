@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Recipes.Services;
 using Microsoft.AspNetCore.Mvc;
+using Recipes.Controllers;
 
 namespace Recipes.Filters
 {
@@ -12,18 +13,26 @@ namespace Recipes.Filters
     {
         public EnsureRecipeExistsAttribute() : base(typeof(EnsureRecipeFilter)) { }
 
-        public class EnsureRecipeFilter : IActionFilter
+        public class EnsureRecipeFilter : IAsyncActionFilter
         {
             RecipeService _service;
             public EnsureRecipeFilter(RecipeService service) => _service = service;
-            public void OnActionExecuted(ActionExecutedContext context)
-            {
-            }
 
-            public void OnActionExecuting(ActionExecutingContext context)
+            public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
             {
-                var recipeId = (int)context.ActionArguments["id"];
-                if(!_service.DoesRecipeExist(recipeId))
+                if (context.ModelState.IsValid)
+                {
+                    var recipeId = (int)context.ActionArguments["id"];
+                    if (await _service.DoesRecipeExistAsync(recipeId))
+                    {
+                        await next();
+                    }
+                    else
+                    {
+                        context.Result = new NotFoundResult();
+                    }
+                }
+                else
                 {
                     context.Result = new NotFoundResult();
                 }
