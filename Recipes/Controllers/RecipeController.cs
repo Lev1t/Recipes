@@ -124,10 +124,9 @@ namespace Recipes.Controllers
             return new ForbidResult();
         }
 
-        private async Task<AuthorizationResult> AuthorizeToManageRecipeAsync(int id)
+        private async Task<AuthorizationResult> AuthorizeToManageRecipeAsync(int recipeId)
         {
-            var recipe = await _recipeService.GetRecipeAsync(id);
-            return await _authService.AuthorizeAsync(User, recipe, "CanManageRecipe");
+            return await _authService.AuthorizeAsync(User, recipeId, "CanManageRecipe");
         }
     }
 }
