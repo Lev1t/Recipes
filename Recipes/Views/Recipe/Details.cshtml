@@ -1,9 +1,8 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+﻿@inject Microsoft.AspNetCore.Authorization.IAuthorizationService AuthService
 @model Recipes.Models.RecipeDetailViewModel
 @{
     ViewData["Title"] = Model.Name;
+    var authResult = await AuthService.AuthorizeAsync(User, Model.Id, "CanManageRecipe");
 }
 
     <div>
@@ -25,9 +24,14 @@
                 <li>@ingridient.Name @ingridient.Quantity @ingridient.Unit</li>
             }
         </ul>
-        <p style="white-space: pre-line;">Method: 
-        @Model.Method</p>
+        <p style="white-space: pre-line;">
+            Method:
+            @Model.Method
+        </p>
         <hr />
-        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">Edit</a>
-        <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-danger">Delete</a>
+        @if (authResult.Succeeded)
+        {
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">Edit</a>
+            <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-danger">Delete</a>
+        }
     </div>

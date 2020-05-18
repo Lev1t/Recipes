@@ -1,29 +1,30 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
-@{
+﻿@{
     ViewData["Title"] = "Recipe list";
+
 }
 @model ICollection<RecipeSummaryViewModel>
-    <div>
-        <table class="table">
-            <thead class="thead-dark">
+<div>
+    <table class="table">
+        <thead class="thead-dark">
+            <tr>
+                <th>Name</th>
+                <th>Number of ingridients</th>
+                <th>Time to cook</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var recipe in Model)
+            {
                 <tr>
-                    <th>Name</th>
-                    <th>Number of ingridients</th>
-                    <th>Time to cook</th>
+                    <td><a asp-controller="Recipe" asp-action="Details" asp-route-id="@recipe.Id">@recipe.Name</a></td>
+                    <td>@recipe.NumberOfIngridients</td>
+                    <td>@recipe.TimeToCook</td>
                 </tr>
-            </thead>
-            <tbody>
-                @foreach (var recipe in Model)
-                {
-                    <tr>
-                        <td><a asp-controller="Recipe" asp-action="Details" asp-route-id="@recipe.Id">@recipe.Name</a></td>
-                        <td>@recipe.NumberOfIngridients</td>
-                        <td>@recipe.TimeToCook</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+            }
+        </tbody>
+    </table>
+    @if (User.Identity.IsAuthenticated)
+    {
         <a asp-action="Create" class="btn btn-warning">Add new recipe</a>
-    </div>
+    }
+</div>

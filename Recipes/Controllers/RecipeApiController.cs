@@ -9,7 +9,6 @@ using Recipes.Filters;
 namespace Recipes.Controllers
 {
     [Route("api/recipes")]
-    [HandleException]
     public class RecipeApiController : Controller
     {
         RecipeService _service;
@@ -22,13 +21,13 @@ namespace Recipes.Controllers
         {
             int x = 0;
             int y = 9 / x;
-            return Ok(_service.GetRecipes());
+            return Ok(_service.GetRecipesAsync());
         }
 
         [HttpGet("{id:int}"), EnsureRecipeExists]
         public IActionResult GetDetails(int id)
         {
-            return Ok(_service.GetRecipeDetails(id));
+            return Ok(_service.GetRecipeDetailsAsync(id));
         }
     }
 }

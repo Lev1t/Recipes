@@ -3,12 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Recipes.Data;
+using Recipes.Models;
 
 namespace Recipes.Models
 {
     public class CreateRecipeCommand : EditRecipeBase
     {
-        public Recipe ToRecipe()
+        public Recipe ToRecipe(User user)
         {
             return new Recipe
             {
@@ -18,6 +19,7 @@ namespace Recipes.Models
                 Method = Method,
                 IsVegetarian = IsVegetarian,
                 IsVegan = IsVegan,
+                CreatedById = user.Id,
                 Ingridients = Ingridients?.Select(i => i.ToIngridient()).ToList()
             };
         }

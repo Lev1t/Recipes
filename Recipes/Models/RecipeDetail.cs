@@ -14,6 +14,8 @@ namespace Recipes.Models
         public string Method { get; set; }
         public bool IsVegetarian { get; set; }
         public bool IsVegan { get; set; }
+        public bool CanEdit { get; set; }
+        public string CreatedById { get; set; }
         public ICollection<CreateIngridientCommand> Ingridients { get; set; }
 
         public static RecipeDetailViewModel FromRecipe(Recipe recipe)
@@ -29,6 +31,7 @@ namespace Recipes.Models
                 Method = recipe.Method,
                 IsVegetarian = recipe.IsVegetarian,
                 IsVegan = recipe.IsVegan,
+                CreatedById = recipe.CreatedById,
                 Ingridients = recipe.Ingridients?.Select(i => new CreateIngridientCommand
                 {
                     Name = i.Name,

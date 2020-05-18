@@ -6,6 +6,9 @@ using Microsoft.Extensions.Logging;
 using Recipes.Data;
 using Recipes.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
+using System.Security.Claims;
+using System.Net.Cache;
 
 namespace Recipes.Services
 {
@@ -13,16 +16,18 @@ namespace Recipes.Services
     {
         readonly AppDbContext _context;
         readonly ILogger _logger;
+        readonly UserManager<User> _userService;
 
-        public RecipeService(AppDbContext context, ILoggerFactory factory)
+        public RecipeService(AppDbContext context, UserManager<User> userService, ILoggerFactory factory)
         {
             _context = context;
+            _userService = userService;
             _logger = factory.CreateLogger<RecipeService>();
         }
         
-        public ICollection<RecipeSummaryViewModel> GetRecipes()
+        public async Task<ICollection<RecipeSummaryViewModel>> GetRecipesAsync()
         {
-            return _context.Recipes
+            return await _context.Recipes
                 .Where(r => !r.IsDeleted)
                 .Select(x => new RecipeSummaryViewModel
                 {
@@ -33,52 +38,75 @@ namespace Recipes.Services
                                                 : $"{x.TimeToCook.Minutes} mins",
                     NumberOfIngridients = x.Ingridients.Count
                 })
-                .ToList();
+                .ToListAsync();
         }
 
-        public bool DoesRecipeExist(int id)
+        public async Task<Recipe> GetRecipeAsync(int id)
         {
-            return _context.Recipes
+            return await _context.Recipes.FindAsync(id);
+        }
+
+        public async Task<bool> DoesRecipeExistAsync(int id)
+        {
+            return await _context.Recipes
                 .Where(r => r.RecipeId == id)
                 .Where(r => r.IsDeleted == false)
-                .Any();
+                .AnyAsync();
         }
 
-        public RecipeDetailViewModel GetRecipeDetails(int id)
+        public async Task<RecipeDetailViewModel> GetRecipeDetailsAsync(int id)
         {
-            var recipe = _context.Recipes.Include(r => r.Ingridients).FirstOrDefault(r => r.RecipeId == id);
+            var recipe = await _context.Recipes
+                .Include(r => r.Ingridients)
+                .FirstOrDefaultAsync(r => r.RecipeId == id);
             return RecipeDetailViewModel.FromRecipe(recipe);
         }
 
-        public int CreateRecipe(CreateRecipeCommand cmd)
+        public async Task<int> CreateRecipeAsync(CreateRecipeCommand cmd, User user)
         {
-            var recipe = cmd.ToRecipe();
-            _context.Recipes.Add(recipe);
-            _context.SaveChanges();
+            var recipe = cmd.ToRecipe(user);
+            await _context.Recipes.AddAsync(recipe);
+            await _context.SaveChangesAsync();
             return recipe.RecipeId;
         }
 
-        public UpdateRecipeCommand GetRecipeForUpdate(int id)
+        public async Task<UpdateRecipeCommand> GetRecipeForUpdateAsync(int id)
         {
-            var recipe = _context.Recipes.Include(r => r.Ingridients).FirstOrDefault(r => r.RecipeId == id);
+            var recipe = await _context.Recipes
+                .Include(r => r.Ingridients)
+                .FirstOrDefaultAsync(r => r.RecipeId == id);
+
+            if (recipe == null) 
+                throw new Exception($"Unable to find recipe with ID {id}");
+
             return UpdateRecipeCommand.FromRecipe(recipe);
         }
 
-        public void UpdateRecipe(UpdateRecipeCommand cmd)
+        public async Task UpdateRecipeAsync(UpdateRecipeCommand cmd)
         {
-            var recipe = _context.Recipes.Include(r => r.Ingridients).FirstOrDefault(r => r.RecipeId == cmd.Id);
-            if (recipe == null) throw new Exception($"Unable to find recipe with ID {cmd.Id}");
-            if (recipe.IsDeleted) throw new Exception("Unable to update deleted recipe");
+            var recipe = await _context.Recipes
+                .Include(r => r.Ingridients)
+                .FirstOrDefaultAsync(r => r.RecipeId == cmd.Id);
+
+            if (recipe == null) 
+                throw new Exception($"Unable to find recipe with ID {cmd.Id}");
+
+            if (recipe.IsDeleted) 
+                throw new Exception("Unable to update deleted recipe");
+
             cmd.UpdateRecipe(recipe);
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
         }
 
-        public void DeleteRecipe(int id)
+        public async Task DeleteRecipeAsync(int id)
         {
-            var recipe = _context.Find<Recipe>(id); //EDIT
-            if (recipe.IsDeleted) throw new Exception("Unable to delete a deleted recipe");
+            var recipe = await _context.FindAsync<Recipe>(id);
+
+            if (recipe.IsDeleted) 
+                throw new Exception("Unable to delete a deleted recipe");
+
             recipe.IsDeleted = true;
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
         }
     }
 }
