@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using Recipes.Services;
 using Microsoft.AspNetCore.Mvc;
 using Recipes.Controllers;
+using Microsoft.Extensions.Logging;
+using Serilog;
 
 namespace Recipes.Filters
 {
@@ -16,7 +18,12 @@ namespace Recipes.Filters
         public class EnsureRecipeFilter : IAsyncActionFilter
         {
             RecipeService _service;
-            public EnsureRecipeFilter(RecipeService service) => _service = service;
+            ILogger<EnsureRecipeFilter> _logger;
+            public EnsureRecipeFilter(RecipeService service, ILogger<EnsureRecipeFilter> logger)
+            {
+                _service = service;
+                _logger = logger;
+            }
 
             public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
             {
@@ -29,11 +36,13 @@ namespace Recipes.Filters
                     }
                     else
                     {
+                        _logger.LogWarning("Recipe with id {RecipeId} doesn't exist", recipeId);
                         context.Result = new NotFoundResult();
                     }
                 }
                 else
                 {
+                    _logger.LogWarning("ModelState invalid");
                     context.Result = new NotFoundResult();
                 }
             }

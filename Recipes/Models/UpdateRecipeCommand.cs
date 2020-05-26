@@ -22,6 +22,7 @@ namespace Recipes.Models
 
         public static UpdateRecipeCommand FromRecipe(Recipe recipe)
         {
+            if (recipe == null) return null;
             return new UpdateRecipeCommand
             {
                 Id = recipe.RecipeId,

@@ -20,7 +20,7 @@ namespace Recipes.Models
 
         public static RecipeDetailViewModel FromRecipe(Recipe recipe)
         {
-            if (recipe == null) return new RecipeDetailViewModel();
+            if (recipe == null) return null;
             return new RecipeDetailViewModel
             {
                 Id = recipe.RecipeId,
