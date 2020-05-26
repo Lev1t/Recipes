@@ -9,36 +9,30 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using System.Security.Claims;
 using System.Net.Cache;
+using AutoMapper;
+using AutoMapper.QueryableExtensions;
 
 namespace Recipes.Services
 {
     public class RecipeService
     {
         readonly AppDbContext _context;
-        readonly ILogger _logger;
         readonly UserManager<User> _userService;
+        readonly ILogger _logger;
+        readonly IMapper _mapper;
 
-        public RecipeService(AppDbContext context, UserManager<User> userService, ILoggerFactory factory)
+        public RecipeService(AppDbContext context, UserManager<User> userService, ILoggerFactory factory, IMapper mapper)
         {
             _context = context;
             _userService = userService;
             _logger = factory.CreateLogger<RecipeService>();
+            _mapper = mapper;
         }
-        
+
         public async Task<ICollection<RecipeSummaryViewModel>> GetRecipesAsync()
         {
-            return await _context.Recipes
-                .Where(r => !r.IsDeleted)
-                .Select(x => new RecipeSummaryViewModel
-                {
-                    Id = x.RecipeId,
-                    Name = x.Name,
-                    TimeToCook = x.TimeToCook.Hours > 0
-                                                ? $"{x.TimeToCook.Hours} hrs {x.TimeToCook.Minutes} mins"
-                                                : $"{x.TimeToCook.Minutes} mins",
-                    NumberOfIngridients = x.Ingridients.Count
-                })
-                .ToListAsync();
+            return _mapper.Map<IList<RecipeSummaryViewModel>>(await _context.Recipes
+                .Where(r => !r.IsDeleted).Include(r => r.Ingridients).ToListAsync());
         }
 
         public async Task<Recipe> GetRecipeAsync(int id)
@@ -59,12 +53,13 @@ namespace Recipes.Services
             var recipe = await _context.Recipes
                 .Include(r => r.Ingridients)
                 .FirstOrDefaultAsync(r => r.RecipeId == id);
-            return RecipeDetailViewModel.FromRecipe(recipe);
+            return _mapper.Map<RecipeDetailViewModel>(recipe);
         }
 
         public async Task<int> CreateRecipeAsync(CreateRecipeCommand cmd, User user)
         {
-            var recipe = cmd.ToRecipe(user);
+            var recipe = _mapper.Map<Recipe>(cmd);
+            recipe.CreatedById = user.Id;
             await _context.Recipes.AddAsync(recipe);
             await _context.SaveChangesAsync();
             return recipe.RecipeId;
@@ -76,10 +71,7 @@ namespace Recipes.Services
                 .Include(r => r.Ingridients)
                 .FirstOrDefaultAsync(r => r.RecipeId == id);
 
-            if (recipe == null) 
-                throw new Exception($"Unable to find recipe with ID {id}");
-
-            return UpdateRecipeCommand.FromRecipe(recipe);
+            return _mapper.Map<UpdateRecipeCommand>(recipe);
         }
 
         public async Task UpdateRecipeAsync(UpdateRecipeCommand cmd)
@@ -88,11 +80,8 @@ namespace Recipes.Services
                 .Include(r => r.Ingridients)
                 .FirstOrDefaultAsync(r => r.RecipeId == cmd.Id);
 
-            if (recipe == null) 
+            if (recipe == null)
                 throw new Exception($"Unable to find recipe with ID {cmd.Id}");
-
-            if (recipe.IsDeleted) 
-                throw new Exception("Unable to update deleted recipe");
 
             cmd.UpdateRecipe(recipe);
             await _context.SaveChangesAsync();
@@ -101,10 +90,6 @@ namespace Recipes.Services
         public async Task DeleteRecipeAsync(int id)
         {
             var recipe = await _context.FindAsync<Recipe>(id);
-
-            if (recipe.IsDeleted) 
-                throw new Exception("Unable to delete a deleted recipe");
-
             recipe.IsDeleted = true;
             await _context.SaveChangesAsync();
         }
