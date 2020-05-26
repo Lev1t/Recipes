@@ -10,6 +10,7 @@ using Recipes.Models;
 using Recipes.Services;
 using Recipes.Filters;
 using System.Runtime.InteropServices.WindowsRuntime;
+using Microsoft.Extensions.Logging;
 
 namespace Recipes.Controllers
 {
@@ -19,12 +20,17 @@ namespace Recipes.Controllers
         private readonly RecipeService _recipeService;
         private readonly UserManager<User> _userService;
         private readonly IAuthorizationService _authService;
+        private readonly ILogger<RecipeController> _logger;
 
-        public RecipeController(RecipeService recipeService, UserManager<User> userManager, IAuthorizationService authorizationService)
+        public RecipeController(RecipeService recipeService, 
+            UserManager<User> userManager, 
+            IAuthorizationService authorizationService,
+            ILogger<RecipeController> logger)
         {
             _recipeService = recipeService;
             _userService = userManager;
             _authService = authorizationService;
+            _logger = logger;
         }
 
         [AllowAnonymous]
@@ -38,7 +44,14 @@ namespace Recipes.Controllers
         [EnsureRecipeExists]
         public async Task<IActionResult> Details(int id)
         {
+            _logger.LogInformation("Loading recipe with ID {Id}", id);
             var model = await _recipeService.GetRecipeDetailsAsync(id);
+
+            if(model == null)
+            {
+                _logger.LogWarning("Couldn't find recipe with ID {Id}", id);
+                return NotFound();
+            }
 
             var authResult = await AuthorizeToManageRecipeAsync(id);
             if(authResult.Succeeded)
@@ -62,12 +75,20 @@ namespace Recipes.Controllers
                 {
                     User user = await _userService.GetUserAsync(User);
                     int recipeId = await _recipeService.CreateRecipeAsync(cmd, user);
+
+                    _logger.LogInformation("Recipe with ID {Id} has been created", recipeId);
+
                     return RedirectToAction(nameof(Details), new { Id = recipeId });
                 }
+                else
+                {
+                    _logger.LogWarning("Creating recipe is failed due to invalid ModelState", cmd.Name);
+                }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 ModelState.AddModelError(string.Empty, "An error occured saving the recipe");
+                _logger.LogError("Failed to save the recipe. Recipe name = {RecipeName}\nException: {Exception}", cmd.Name, ex);
             }
             return View(cmd);
         }
@@ -78,12 +99,14 @@ namespace Recipes.Controllers
             var authResult = await AuthorizeToManageRecipeAsync(id);
             if (!authResult.Succeeded)
             {
+                _logger.LogWarning("User {UserName} attempted to edit the recipe ID {Id} without permission", User.Identity.Name, id);
                 return new ForbidResult();
             }
 
             var model = await _recipeService.GetRecipeForUpdateAsync(id);
             if (model == null)
             {
+                _logger.LogError("Failed to create UpdateRecipeCommand for ID {Id}", id);
                 return NotFound();
             }
             return View(model);
@@ -99,15 +122,26 @@ namespace Recipes.Controllers
                     var authResult = await AuthorizeToManageRecipeAsync(cmd.Id);
                     if (!authResult.Succeeded)
                     {
+                        _logger.LogWarning("User {UserName} attempted to edit the recipe ID {Id} without permission", 
+                            User.Identity.Name, cmd.Id);
+
                         return new ForbidResult();
                     }
                     await _recipeService.UpdateRecipeAsync(cmd);
+                    _logger.LogInformation("User {UserName} has updated the recipe ID {Id}", cmd.Id);
                     return RedirectToAction(nameof(Details), new { Id = cmd.Id });
                 }
+                else
+                {
+                    _logger.LogWarning("Updating the recipe ID {Id}  by User {UserName} was fail due to invalid ModelState", 
+                        cmd.Id, User.Identity.Name);
+                }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 ModelState.AddModelError(string.Empty, "An error occurred saving the recipe");
+                _logger.LogError("Failed to update the recipe ID {Id} by User {UserName}\nException: {Exception}",
+                    cmd.Id, User.Identity.Name, ex);
             }
             return View(cmd);
         }
@@ -119,8 +153,11 @@ namespace Recipes.Controllers
             if (authResult.Succeeded)
             {
                 await _recipeService.DeleteRecipeAsync(id);
+                _logger.LogInformation("User {UserName} deleted the recipe ID {Id}", User.Identity.Name, id);
                 return RedirectToAction(nameof(Index));
             }
+            _logger.LogWarning("User {UserName} attempted to delete the recipe ID {Id} without permission",
+                User.Identity.Name, id);
             return new ForbidResult();
         }
 

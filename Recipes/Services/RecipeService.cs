@@ -24,7 +24,7 @@ namespace Recipes.Services
             _userService = userService;
             _logger = factory.CreateLogger<RecipeService>();
         }
-        
+
         public async Task<ICollection<RecipeSummaryViewModel>> GetRecipesAsync()
         {
             return await _context.Recipes
@@ -76,9 +76,6 @@ namespace Recipes.Services
                 .Include(r => r.Ingridients)
                 .FirstOrDefaultAsync(r => r.RecipeId == id);
 
-            if (recipe == null) 
-                throw new Exception($"Unable to find recipe with ID {id}");
-
             return UpdateRecipeCommand.FromRecipe(recipe);
         }
 
@@ -88,11 +85,8 @@ namespace Recipes.Services
                 .Include(r => r.Ingridients)
                 .FirstOrDefaultAsync(r => r.RecipeId == cmd.Id);
 
-            if (recipe == null) 
+            if (recipe == null)
                 throw new Exception($"Unable to find recipe with ID {cmd.Id}");
-
-            if (recipe.IsDeleted) 
-                throw new Exception("Unable to update deleted recipe");
 
             cmd.UpdateRecipe(recipe);
             await _context.SaveChangesAsync();
@@ -101,10 +95,6 @@ namespace Recipes.Services
         public async Task DeleteRecipeAsync(int id)
         {
             var recipe = await _context.FindAsync<Recipe>(id);
-
-            if (recipe.IsDeleted) 
-                throw new Exception("Unable to delete a deleted recipe");
-
             recipe.IsDeleted = true;
             await _context.SaveChangesAsync();
         }
