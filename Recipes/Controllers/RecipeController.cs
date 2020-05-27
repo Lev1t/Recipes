@@ -15,6 +15,7 @@ using Microsoft.Extensions.Logging;
 namespace Recipes.Controllers
 {
     [Authorize]
+    [AutoValidateAntiforgeryToken]
     public class RecipeController : Controller
     {
         private readonly RecipeService _recipeService;
