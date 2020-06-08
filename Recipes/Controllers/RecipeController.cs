@@ -34,6 +34,7 @@ namespace Recipes.Controllers
             _logger = logger;
         }
 
+        [HttpGet]
         [AllowAnonymous]
         public async Task<IActionResult> Index()
         {
@@ -41,6 +42,7 @@ namespace Recipes.Controllers
             return View(model);
         }
 
+        [HttpGet]
         [AllowAnonymous]
         [EnsureRecipeExists]
         public async Task<IActionResult> Details(int id)
@@ -62,6 +64,7 @@ namespace Recipes.Controllers
             return View(model);
         }
 
+        [HttpGet]
         public IActionResult Create()
         {
             return View(new CreateRecipeCommand());
@@ -94,6 +97,7 @@ namespace Recipes.Controllers
             return View(cmd);
         }
 
+        [HttpGet]
         [EnsureRecipeExists]
         public async Task<IActionResult> Edit(int id)
         {
@@ -129,7 +133,7 @@ namespace Recipes.Controllers
                         return new ForbidResult();
                     }
                     await _recipeService.UpdateRecipeAsync(cmd);
-                    _logger.LogInformation("User {UserName} has updated the recipe ID {Id}", cmd.Id);
+                    _logger.LogInformation("User {UserName} has updated the recipe ID {Id}", User.Identity.Name, cmd.Id);
                     return RedirectToAction(nameof(Details), new { Id = cmd.Id });
                 }
                 else
@@ -146,6 +150,7 @@ namespace Recipes.Controllers
             }
             return View(cmd);
         }
+
 
         [EnsureRecipeExists]
         public async Task<IActionResult> Delete(int id)

@@ -12,23 +12,24 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using AutoMapper;
 using Recipes.Data;
 using Recipes.Models;
 using Recipes.Services;
 using Recipes.Authorization;
+using Recipes.Data.Mapper;
 
 namespace Recipes
 {
     public class Startup
     {
-        public Startup(IConfiguration configuration, IWebHostEnvironment env)
+        public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
-            Env = env;
         }
 
         public IConfiguration Configuration { get; }
-        public IWebHostEnvironment Env { get; set; }
 
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
@@ -52,6 +53,15 @@ namespace Recipes
 
             services.AddTransient<IEmailSender, EmailSender>();
 
+            services.ConfigureApplicationCookie(options =>
+            {
+                options.Cookie.Name = "RecipesCookies";
+                options.Cookie.HttpOnly = true;
+                options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
+                options.ReturnUrlParameter = CookieAuthenticationDefaults.ReturnUrlParameter;
+                options.SlidingExpiration = true;
+            });
+
             services.AddAuthorization(options =>
             {
                 options.AddPolicy("CanManageRecipe", policy => policy
@@ -60,7 +70,9 @@ namespace Recipes
             services.AddScoped<IAuthorizationHandler, IsRecipeOwnerHandler>();
 
             services.AddScoped<Services.RecipeService>();
-            var builder = services.AddRazorPages();
+            services.AddRazorPages();
+            services.AddAutoMapper(typeof(MapperProfile));
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -75,7 +87,8 @@ namespace Recipes
                 app.UseExceptionHandler("/Home/Error"); //TODO: add error page
                 app.UseHsts();
             }
-            app.UseHttpsRedirection();
+            //app.UseHttpsRedirection();
+
             app.UseStaticFiles();
 
             app.UseRouting();

@@ -19,26 +19,5 @@ namespace Recipes.Models
             recipe.IsVegan = IsVegan;
             recipe.Ingridients = Ingridients?.Select(x => x.ToIngridient()).ToList();
         }
-
-        public static UpdateRecipeCommand FromRecipe(Recipe recipe)
-        {
-            if (recipe == null) return null;
-            return new UpdateRecipeCommand
-            {
-                Id = recipe.RecipeId,
-                Name = recipe.Name,
-                TimeToCookHrs = recipe.TimeToCook.Hours,
-                TimeToCookMins = recipe.TimeToCook.Minutes,
-                Method = recipe.Method,
-                IsVegan = recipe.IsVegan,
-                IsVegetarian = recipe.IsVegetarian,
-                Ingridients = recipe.Ingridients?.Select(i => new CreateIngridientCommand
-                {
-                    Name = i.Name,
-                    Quantity = i.Quantity,
-                    Unit = i.Unit
-                })?.ToList()
-            };
-        }
     }
 }
