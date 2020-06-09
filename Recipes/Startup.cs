@@ -62,6 +62,12 @@ namespace Recipes
                 options.SlidingExpiration = true;
             });
 
+            services.AddAuthentication().AddFacebook(facebookOptions =>
+            {
+                facebookOptions.AppId = Configuration["Authentication:Facebook:AppId"];
+                facebookOptions.AppSecret = Configuration["Authentication:Facebook:AppSecret"];
+            });
+
             services.AddAuthorization(options =>
             {
                 options.AddPolicy("CanManageRecipe", policy => policy
@@ -87,7 +93,7 @@ namespace Recipes
                 app.UseExceptionHandler("/Home/Error"); //TODO: add error page
                 app.UseHsts();
             }
-            //app.UseHttpsRedirection();
+            app.UseHttpsRedirection();
 
             app.UseStaticFiles();
 
